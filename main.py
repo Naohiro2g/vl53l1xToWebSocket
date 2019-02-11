@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 import uuid
 
-from socketIO_client import SocketIO, BaseNamespace
+from socketIO_client_nexus import SocketIO, LoggingNamespace
 
 
 import VL53L1X
@@ -17,6 +17,7 @@ import VL53L1X
 WS_HOST = os.getenv('WS_HOST', 'localhost')
 WS_PORT = os.getenv('WS_PORT', 4444)
 POOP_LOCATION = os.getenv('POOP_LOCATION', 'NC')
+ID = str(uuid.uuid4())
 
 print("""
 
@@ -25,26 +26,41 @@ Press Ctrl+C to exit.
 """)
 
 tof = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
-tof.open() 
-tof.start_ranging(1) 
+tof.open()
+tof.start_ranging(1)
 
 running = True
+
 
 def exit_handler(signal, frame):
     global running
     running = False
-    tof.stop_ranging() # Stop ranging
+    tof.stop_ranging()  # Stop ranging
     sys.stdout.write("\n")
     sys.exit(0)
 
+
 signal.signal(signal.SIGINT, exit_handler)
 
-class PoopNamespace(BaseNamespace):
-    def on_chiotte_response(self, *args):
-        print('on_chiotte_response', args)
 
-socketIO = SocketIO(WS_HOST, WS_PORT)
-poopNamespace = socketIO.define(PoopNamespace, '/poop')
+def on_chiotte_response(self, *args):
+    print('on_chiotte_response', args)
+
+
+def on_connect(self):
+    print('[Connected]')
+
+
+def on_reconnect(self):
+    print('[Reconnected]')
+
+
+def on_disconnect(self):
+    print('[Disconnected]')
+
+
+socketIO = SocketIO(WS_HOST, WS_PORT, LoggingNamespace)
+socketIO.on('chiotte_response', on_chiotte_response)
 
 while running:
     distance_in_mm = 0
@@ -52,13 +68,11 @@ while running:
         distance_in_mm = tof.get_distance()
         data = json.dumps(
             {
-                'id': str(uuid.uuid4()),
-                'location': POOP_LOCATION,
-                'timestamp': datetime.utcnow().strftime("%m/%d/%Y, %H:%M:%S"),
-                'pq': distance_in_mm
+                "id": ID,
+                "gender": POOP_LOCATION,
+                "pq": distance_in_mm
             }
         )
         print(data)
-        poopNamespace.emit(data)
+        socketIO.emit('chiotte', data)
     time.sleep(0.5)
-
