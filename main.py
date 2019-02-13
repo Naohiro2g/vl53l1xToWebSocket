@@ -62,10 +62,11 @@ def on_disconnect(self):
 socketIO = SocketIO(WS_HOST, WS_PORT, LoggingNamespace)
 socketIO.on('chiotte_response', on_chiotte_response)
 
-distance_in_mm = 0
+distance_in_mm_old = 0
 while running:
-    if(tof.get_distance() != distance_in_mm and 100 <= tof.get_distance() <= 230):
-        distance_in_mm = tof.get_distance()
+    distance_in_mm = tof.get_distance() 
+    if(distance_in_mm != distance_in_mm_old and 100 <= distance_in_mm <= 230):
+        distance_in_mm_old = distance_in_mm
         data = json.dumps(
             {
                 "id": ID,
