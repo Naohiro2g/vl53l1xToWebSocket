@@ -62,9 +62,9 @@ def on_disconnect(self):
 socketIO = SocketIO(WS_HOST, WS_PORT, LoggingNamespace)
 socketIO.on('chiotte_response', on_chiotte_response)
 
+distance_in_mm = 0
 while running:
-    distance_in_mm = 0
-    if(tof.get_distance() != distance_in_mm):
+    if(tof.get_distance() != distance_in_mm and 100 <= tof.get_distance() <= 230):
         distance_in_mm = tof.get_distance()
         data = json.dumps(
             {
@@ -75,4 +75,4 @@ while running:
         )
         print(data)
         socketIO.emit('chiotte', data)
-    time.sleep(0.5)
+        time.sleep(0.5)
