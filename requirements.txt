@@ -1,0 +1,3 @@
+socketIO-client-nexus
+smbus2
+vl53l1x
